@@ -89,15 +89,11 @@ class GitHelper:
                     f" {_format_commit(commit2)}"
                 )
                 if c is not None:
-                    results.append((c_, c, [commit1, commit2]))
+                    results.append((c_, c, commit1, commit2))
 
         print("Done. Results:")
         results.sort(key=lambda x: x[0])
-        for (
-            c_,
-            c,
-            (commit1, commit2),
-        ) in results:
+        for (c_, c, commit1, commit2) in results:
             print(
                 "***",
                 c_,
