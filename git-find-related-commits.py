@@ -14,7 +14,6 @@ import contextlib
 import sys
 from typing import List, Optional, Tuple
 
-import better_exchook  # pip install better_exchook
 import git  # pip install GitPython
 
 _TmpBranchName = "tmp-find-related-commits"
@@ -145,11 +144,9 @@ def _count_changed_lines(s: str) -> int:
 def main():
     helper = GitHelper(".")
     helper.test()
-    # better_exchook.debug_shell(locals(), globals())
 
 
 if __name__ == "__main__":
-    better_exchook.install()
     try:
         main()
     except KeyboardInterrupt:
