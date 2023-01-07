@@ -91,10 +91,9 @@ class GitHelper:
                 (commit1, commit2) = (commits[i], commits[j])
                 c, c_, diffs = self.score_commit_pair_squash(commit1, commit2)
                 print(
-                    "Commits:",
-                    [_format_commit(commit1), _format_commit(commit2)],
-                    "relative diff count:",
-                    c,
+                    f"{c or '':>4}"
+                    f" {_format_commit(commit1)} --"
+                    f" {_format_commit(commit2)}"
                 )
                 if c is not None:
                     results.append((c_, c, [commit1, commit2], diffs))
@@ -128,7 +127,7 @@ class GitHelper:
 
 
 def _format_commit(commit: git.Commit) -> str:
-    return f"{commit} ({commit.message.splitlines()[0]})"
+    return f"{str(commit):8.8} {commit.message.splitlines()[0]}"
 
 
 def _count_changed_lines(s: str) -> int:
