@@ -51,7 +51,7 @@ class GitHelper:
     def score_commit_pair_squash(
         self, commit1: git.Commit, commit2: git.Commit
     ) -> Tuple[Optional[int], Optional[int], List[str]]:
-        (commit0,) = commit1.parents
+        (commit0,) = commit1.parents  # will fail if more than one parent
         # print(f"Start at {_format_commit(commit0)}")
         with self.in_tmp_branch(commit0):
             # print(f"Apply {_format_commit(commit)}")
