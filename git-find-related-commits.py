@@ -65,7 +65,7 @@ class GitHelper:
                 return None, None
 
             rel_diff = diff_count2 - diff_count1
-            commit_diff_str = self.repo.git.show(commit2)
+            commit_diff_str = self.repo.git.show(commit2, format="")
             rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
             if rel_diff_c >= 0:
                 # this commit has no influence on the prev commit.
@@ -128,11 +128,14 @@ def _format_commit(commit: git.Commit) -> str:
 
 
 def _count_changed_lines(s: str) -> int:
-    c = 0
-    for line in s.splitlines():
-        if line.startswith("+ ") or line.startswith("- "):
-            c += 1
-    return c
+    lines = s.splitlines()
+    assert lines[0].startswith("diff --git ")
+    if lines[1].startswith(("new file ", "deleted file ")):
+        lines.pop(1)
+    assert lines[1].startswith("index ")
+    assert lines[2].startswith("--- ")
+    assert lines[3].startswith("+++ ")
+    return sum(1 for line in lines[4:] if line.startswith(("+", "-")))
 
 
 def main():
