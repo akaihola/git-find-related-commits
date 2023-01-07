@@ -11,6 +11,7 @@ https://www.reddit.com/r/learnprogramming/comments/pftenx/how_to_cleanup_a_branc
 from __future__ import annotations
 
 import contextlib
+import re
 import sys
 from typing import List, Optional, Tuple
 
@@ -22,7 +23,12 @@ _TmpBranchName = "tmp-find-related-commits"
 class GitHelper:
     def __init__(self, repo_dir: str):
         self.repo = git.Repo(repo_dir)
-        self.main_branch = "origin/master"
+    
+        # get the main branch name
+        symref_output = self.repo.git.ls_remote("--symref", "origin", "HEAD")
+        head = re.match(r"ref: refs/heads/(.+)\tHEAD\b", symref_output).group(1)
+        self.main_branch = f"origin/{head}"
+    
         self.local_branch = self.repo.active_branch
         assert self.local_branch.name != _TmpBranchName
 
