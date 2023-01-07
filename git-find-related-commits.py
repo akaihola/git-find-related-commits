@@ -45,23 +45,21 @@ class GitHelper:
     ) -> Tuple[Optional[int], Optional[int], List[str]]:
         (commit0,) = commit1.parents
         # print(f"Start at {_format_commit(commit0)}")
-        diffs = []
         rel_diff_c = None
         with self.in_tmp_branch(commit0):
             # print(f"Apply {_format_commit(commit)}")
             try:
                 self.repo.git.cherry_pick(commit1, "--keep-redundant-commits")
             except git.GitCommandError:
-                return None, None, diffs
+                return None, None
             diff_str = self.repo.git.diff(f"{commit0}..HEAD")
             diff_count1 = _count_changed_lines(diff_str)
-            diffs.append(diff_str)
 
             # print(f"Apply {_format_commit(commit)}")
             try:
                 self.repo.git.cherry_pick(commit2, "--keep-redundant-commits")
             except git.GitCommandError:
-                return None, None, diffs
+                return None, None
             diff_str = self.repo.git.diff(f"{commit0}..HEAD")
             diff_count2 = _count_changed_lines(diff_str)
             commit_diff_str = self.repo.git.show(commit2)
@@ -71,10 +69,9 @@ class GitHelper:
             if (
                 rel_diff_c >= 0
             ):  # this commit has no influence on the prev commit. so skip this whole proposed squash
-                return None, None, diffs
-            diffs.append(diff_str)
+                return None, None
         rel_diff = diff_count2 - diff_count1
-        return rel_diff, rel_diff_c, diffs
+        return rel_diff, rel_diff_c
 
     def test(self):
         commits = self.get_commit_list()
@@ -85,18 +82,22 @@ class GitHelper:
         results = []
         for i, commit1 in enumerate(commits):
             for commit2 in commits[i + 1 :]:
-                c, c_, diffs = self.score_commit_pair_squash(commit1, commit2)
+                c, c_ = self.score_commit_pair_squash(commit1, commit2)
                 print(
                     f"{c or '':>4}"
                     f" {_format_commit(commit1)} --"
                     f" {_format_commit(commit2)}"
                 )
                 if c is not None:
-                    results.append((c_, c, [commit1, commit2], diffs))
+                    results.append((c_, c, [commit1, commit2]))
 
         print("Done. Results:")
         results.sort(key=lambda x: x[0])
-        for c_, c, (commit1, commit2), diffs in results:
+        for (
+            c_,
+            c,
+            (commit1, commit2),
+        ) in results:
             print(
                 "***",
                 c_,
