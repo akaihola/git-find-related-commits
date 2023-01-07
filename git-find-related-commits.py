@@ -78,9 +78,8 @@ class GitHelper:
             print(f"  {_format_commit(commit)}")
         print("Iterate...")
         results = []
-        for i in range(len(commits)):
-            for j in range(i + 1, len(commits)):
-                (commit1, commit2) = (commits[i], commits[j])
+        for i, commit1 in enumerate(commits):
+            for commit2 in commits[i + 1 :]:
                 c, c_, diffs = self.score_commit_pair_squash(commit1, commit2)
                 print(
                     f"{c or '':>4}"
