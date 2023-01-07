@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-"""
+"""Find closely related commits in a Git branch
+
+Adopted from https://github.com/albertz/helpers/blob/master/git-find-related-commits.py
+
 https://stackoverflow.com/questions/66731069/how-to-find-pairs-groups-of-most-related-commits
 https://www.reddit.com/r/learnprogramming/comments/pftenx/how_to_cleanup_a_branch_pr_with_huge_number_of/
 """
