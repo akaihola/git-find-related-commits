@@ -40,37 +40,37 @@ class GitHelper:
             )
         )
 
+    def cherry_pick_and_diff(self, commit: git.Commit, commit0: git.Commit) -> int:
+        try:
+            self.repo.git.cherry_pick(commit, "--keep-redundant-commits")
+        except git.GitCommandError:
+            return None
+        diff_str = self.repo.git.diff(f"{commit0}..HEAD")
+        return _count_changed_lines(diff_str)
+
     def score_commit_pair_squash(
         self, commit1: git.Commit, commit2: git.Commit
     ) -> Tuple[Optional[int], Optional[int], List[str]]:
         (commit0,) = commit1.parents
         # print(f"Start at {_format_commit(commit0)}")
-        rel_diff_c = None
         with self.in_tmp_branch(commit0):
             # print(f"Apply {_format_commit(commit)}")
-            try:
-                self.repo.git.cherry_pick(commit1, "--keep-redundant-commits")
-            except git.GitCommandError:
+            diff_count1 = self.cherry_pick_and_diff(commit1, commit0)
+            if diff_count1 is None:
                 return None, None
-            diff_str = self.repo.git.diff(f"{commit0}..HEAD")
-            diff_count1 = _count_changed_lines(diff_str)
 
             # print(f"Apply {_format_commit(commit)}")
-            try:
-                self.repo.git.cherry_pick(commit2, "--keep-redundant-commits")
-            except git.GitCommandError:
+            diff_count2 = self.cherry_pick_and_diff(commit2, commit0)
+            if diff_count2 is None:
                 return None, None
-            diff_str = self.repo.git.diff(f"{commit0}..HEAD")
-            diff_count2 = _count_changed_lines(diff_str)
-            commit_diff_str = self.repo.git.show(commit2)
-            cc = _count_changed_lines(commit_diff_str)
+
             rel_diff = diff_count2 - diff_count1
-            rel_diff_c = rel_diff - cc
-            if (
-                rel_diff_c >= 0
-            ):  # this commit has no influence on the prev commit. so skip this whole proposed squash
+            commit_diff_str = self.repo.git.show(commit2)
+            rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
+            if rel_diff_c >= 0:
+                # this commit has no influence on the prev commit.
+                # so skip this whole proposed squash
                 return None, None
-        rel_diff = diff_count2 - diff_count1
         return rel_diff, rel_diff_c
 
     def test(self):
