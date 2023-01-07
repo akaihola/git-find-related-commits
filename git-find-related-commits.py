@@ -49,17 +49,15 @@ class GitHelper:
         )
 
     def score_commit_pair_squash(
-        self, commits: List[git.Commit]
+        self, commit1: git.Commit, commit2: git.Commit
     ) -> Tuple[Optional[int], Optional[int], List[str]]:
-        commit0 = commits[0]
-        assert len(commit0.parents) == 1  # not implemented otherwise...
-        commit0 = commit0.parents[0]
+        (commit0,) = commit1.parents
         # print(f"Start at {_format_commit(commit0)}")
         diffs = []
         diff_counts = []
         rel_diff_c = None
         with self.in_tmp_branch(commit0):
-            for commit in commits:
+            for commit in [commit1, commit2]:
                 # print(f"Apply {_format_commit(commit)}")
                 try:
                     self.repo.git.cherry_pick(commit, "--keep-redundant-commits")
@@ -90,26 +88,26 @@ class GitHelper:
         results = []
         for i in range(len(commits)):
             for j in range(i + 1, len(commits)):
-                commit_pair = [commits[i], commits[j]]
-                c, c_, diffs = self.score_commit_pair_squash(commit_pair)
+                (commit1, commit2) = (commits[i], commits[j])
+                c, c_, diffs = self.score_commit_pair_squash(commit1, commit2)
                 print(
                     "Commits:",
-                    [_format_commit(commit) for commit in commit_pair],
+                    [_format_commit(commit1), _format_commit(commit2)],
                     "relative diff count:",
                     c,
                 )
                 if c is not None:
-                    results.append((c_, c, commit_pair, diffs))
+                    results.append((c_, c, [commit1, commit2], diffs))
 
         print("Done. Results:")
         results.sort(key=lambda x: x[0])
-        for c_, c, commit_pair, diffs in results:
+        for c_, c, (commit1, commit2), diffs in results:
             print(
                 "***",
                 c_,
                 c,
                 "commits:",
-                [_format_commit(commit) for commit in commit_pair],
+                [_format_commit(commit1), _format_commit(commit2)],
             )
 
     @contextlib.contextmanager
