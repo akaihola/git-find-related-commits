@@ -26,25 +26,17 @@ class GitHelper:
         self.local_branch = self.repo.active_branch
         assert self.local_branch.name != _TmpBranchName
 
-    def get_base_commit(self) -> git.Commit:
-        """
-        Returns:
-        On some branch, return the base commit which is in the main branch (e.g. origin/master).
-        """
-        return self.repo.merge_base(self.main_branch, self.local_branch)[0]
-
     def get_commit_list(self) -> List[git.Commit]:
         """
         Returns:
         All the commits starting from the main branch.
         """
+        # On a branch, get the base commit which is in the main branch
+        # (e.g. origin/master).
+        base_commit = self.repo.merge_base(self.main_branch, self.local_branch)[0]
         return list(
             reversed(
-                list(
-                    self.repo.iter_commits(
-                        f"{self.get_base_commit()}..{self.local_branch}"
-                    )
-                )
+                list(self.repo.iter_commits(f"{base_commit}..{self.local_branch}"))
             )
         )
 
