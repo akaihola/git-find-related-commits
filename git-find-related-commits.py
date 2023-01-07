@@ -46,7 +46,6 @@ class GitHelper:
         (commit0,) = commit1.parents
         # print(f"Start at {_format_commit(commit0)}")
         diffs = []
-        diff_counts = []
         rel_diff_c = None
         with self.in_tmp_branch(commit0):
             # print(f"Apply {_format_commit(commit)}")
@@ -55,9 +54,8 @@ class GitHelper:
             except git.GitCommandError:
                 return None, None, diffs
             diff_str = self.repo.git.diff(f"{commit0}..HEAD")
-            c = _count_changed_lines(diff_str)
+            diff_count1 = _count_changed_lines(diff_str)
             diffs.append(diff_str)
-            diff_counts.append(c)
 
             # print(f"Apply {_format_commit(commit)}")
             try:
@@ -65,18 +63,17 @@ class GitHelper:
             except git.GitCommandError:
                 return None, None, diffs
             diff_str = self.repo.git.diff(f"{commit0}..HEAD")
-            c = _count_changed_lines(diff_str)
+            diff_count2 = _count_changed_lines(diff_str)
             commit_diff_str = self.repo.git.show(commit2)
             cc = _count_changed_lines(commit_diff_str)
-            rel_diff = c - diff_counts[-1]
+            rel_diff = diff_count2 - diff_count1
             rel_diff_c = rel_diff - cc
             if (
                 rel_diff_c >= 0
             ):  # this commit has no influence on the prev commit. so skip this whole proposed squash
                 return None, None, diffs
             diffs.append(diff_str)
-            diff_counts.append(c)
-        rel_diff = diff_counts[-1] - diff_counts[0]
+        rel_diff = diff_count2 - diff_count1
         return rel_diff, rel_diff_c, diffs
 
     def test(self):
