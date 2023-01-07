@@ -49,25 +49,33 @@ class GitHelper:
         diff_counts = []
         rel_diff_c = None
         with self.in_tmp_branch(commit0):
-            for commit in [commit1, commit2]:
-                # print(f"Apply {_format_commit(commit)}")
-                try:
-                    self.repo.git.cherry_pick(commit, "--keep-redundant-commits")
-                except git.GitCommandError:
-                    return None, None, diffs
-                diff_str = self.repo.git.diff(f"{commit0}..HEAD")
-                c = _count_changed_lines(diff_str)
-                if diff_counts:
-                    commit_diff_str = self.repo.git.show(commit)
-                    cc = _count_changed_lines(commit_diff_str)
-                    rel_diff = c - diff_counts[-1]
-                    rel_diff_c = rel_diff - cc
-                    if (
-                        rel_diff_c >= 0
-                    ):  # this commit has no influence on the prev commit. so skip this whole proposed squash
-                        return None, None, diffs
-                diffs.append(diff_str)
-                diff_counts.append(c)
+            # print(f"Apply {_format_commit(commit)}")
+            try:
+                self.repo.git.cherry_pick(commit1, "--keep-redundant-commits")
+            except git.GitCommandError:
+                return None, None, diffs
+            diff_str = self.repo.git.diff(f"{commit0}..HEAD")
+            c = _count_changed_lines(diff_str)
+            diffs.append(diff_str)
+            diff_counts.append(c)
+
+            # print(f"Apply {_format_commit(commit)}")
+            try:
+                self.repo.git.cherry_pick(commit2, "--keep-redundant-commits")
+            except git.GitCommandError:
+                return None, None, diffs
+            diff_str = self.repo.git.diff(f"{commit0}..HEAD")
+            c = _count_changed_lines(diff_str)
+            commit_diff_str = self.repo.git.show(commit2)
+            cc = _count_changed_lines(commit_diff_str)
+            rel_diff = c - diff_counts[-1]
+            rel_diff_c = rel_diff - cc
+            if (
+                rel_diff_c >= 0
+            ):  # this commit has no influence on the prev commit. so skip this whole proposed squash
+                return None, None, diffs
+            diffs.append(diff_str)
+            diff_counts.append(c)
         rel_diff = diff_counts[-1] - diff_counts[0]
         return rel_diff, rel_diff_c, diffs
 
