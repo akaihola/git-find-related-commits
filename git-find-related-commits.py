@@ -123,6 +123,7 @@ class GitHelper:
         finally:
             repo.git.reset("--hard")
             repo.git.checkout(prev_active_branch)
+            repo.delete_head(_TmpBranchName, force=True)
 
 
 def _format_commit(commit: git.Commit) -> str:
