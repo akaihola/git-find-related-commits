@@ -47,8 +47,8 @@ class GitHelper:
         )
 
     def count_changed_lines_since(self, commit0: git.Commit) -> int:
-        diff_str = self.repo.git.diff(f"{commit0}..HEAD")
-        return _count_changed_lines(diff_str)
+        diff_str = self.repo.git.diff("--shortstat", f"{commit0}..HEAD")
+        return _get_shortstat_total(diff_str)
 
     def test(self):
         commits = self.get_commit_list()
@@ -98,8 +98,8 @@ class GitHelper:
                 continue
             diff_count2 = self.count_changed_lines_since(commit0)
             rel_diff = diff_count2 - diff_count1
-            commit_diff_str = self.repo.git.show(commit2, format="")
-            rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
+            commit_diff_str = self.repo.git.show(commit2, format="", shortstat=True)
+            rel_diff_c = rel_diff - _get_shortstat_total(commit_diff_str)
             if rel_diff_c >= 0:
                 # this commit has no influence on the prev commit.
                 # so skip this whole proposed squash
@@ -129,15 +129,33 @@ def _format_commit(commit: git.Commit) -> str:
     return f"{str(commit):8.8} {commit.message.splitlines()[0]}"
 
 
-def _count_changed_lines(s: str) -> int:
-    lines = s.splitlines()
-    assert lines[0].startswith("diff --git ")
-    if lines[1].startswith(("new file ", "deleted file ")):
-        lines.pop(1)
-    assert lines[1].startswith("index ")
-    assert lines[2].startswith("--- ")
-    assert lines[3].startswith("+++ ")
-    return sum(1 for line in lines[4:] if line.startswith(("+", "-")))
+SHORTSTAT_RE = re.compile(
+    r"""
+    _ \d+ _ file s? _ changed
+    (?: , _ (\d+) _ insertion s? \( \+ \) )?
+    (?: , _ (\d+) _  deletion s? \(  - \) )?
+    """.replace(
+        "_", r"\ "
+    ),
+    re.VERBOSE,
+)
+
+
+def _get_shortstat_total(shortstat_output: str) -> int:
+    """Parse total insertions and deletions in ``git --shortstat``
+
+    >>> _get_shortstat_total(" 2 files changed, 1 insertion(+), 5 deletions(-)")
+    6
+    >>> _get_shortstat_total(" 1 file changed, 3 insertions(+)")
+    3
+    >>> _get_shortstat_total(" 2 files changed, 1 deletion(-)")
+    1
+
+    """
+    match = SHORTSTAT_RE.match(shortstat_output)
+    if not match:
+        raise RuntimeError("Can't parse git --shortstat output {shortstat_output!r}")
+    return int(match.group(1) or 0) + int(match.group(2) or 0)
 
 
 def main():
