@@ -55,7 +55,9 @@ class GitHelper:
         diff_str = self.repo.git.diff("--shortstat", f"{commit0}..HEAD")
         return _get_shortstat_total(diff_str)
 
-    def test(self) -> List[Tuple[int, int, git.Commit, git.Commit]]:
+    def apply_and_diff_commit_pairs(
+        self,
+    ) -> List[Tuple[int, int, git.Commit, git.Commit]]:
         commits = self.get_commit_list()
         print_all_commits(commits)
         print("Iterate...")
@@ -68,7 +70,7 @@ class GitHelper:
                 diff_count1 = self.count_changed_lines_since(commit0)
                 if diff_count1 is None:
                     continue
-                for commit2, rel_diff, rel_diff_c in self.apply_commit2(
+                for commit2, rel_diff, rel_diff_c in self.apply_and_diff_each_commit2(
                     commit0, commit1, diff_count1, commits[i + 1 :]
                 ):
                     print(f"{rel_diff or '':>4} {_format_commits(commit1, commit2)}")
@@ -76,7 +78,7 @@ class GitHelper:
                         results.append((rel_diff_c, rel_diff, commit1, commit2))
         return results
 
-    def apply_commit2(
+    def apply_and_diff_each_commit2(
         self,
         commit0: git.Commit,
         commit1: git.Commit,
@@ -178,13 +180,9 @@ def print_results(results: List[Tuple[int, int, git.Commit, git.Commit]]) -> Non
 
 def main() -> None:
     helper = GitHelper(".")
-    results = helper.test()
+    results = helper.apply_and_diff_commit_pairs()
     print_results(results)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt")
-        sys.exit(1)
+    main()
