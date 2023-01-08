@@ -13,7 +13,7 @@ from __future__ import annotations
 import contextlib
 import re
 import sys
-from typing import List, Optional, Tuple
+from typing import Generator, Iterable, List, Optional, Tuple
 
 import git  # pip install GitPython
 
@@ -26,7 +26,12 @@ class GitHelper:
 
         # get the main branch name
         symref_output = self.repo.git.ls_remote("--symref", "origin", "HEAD")
-        head = re.match(r"ref: refs/heads/(.+)\tHEAD\b", symref_output).group(1)
+        match = re.match(r"ref: refs/heads/(.+)\tHEAD\b", symref_output)
+        if not match:
+            raise RuntimeError(
+                "Can't parse `git --symref origin HEAD` output {symref_output!r}"
+            )
+        head = match.group(1)
         self.main_branch = f"origin/{head}"
 
         self.local_branch = self.repo.active_branch
@@ -50,7 +55,7 @@ class GitHelper:
         diff_str = self.repo.git.diff("--shortstat", f"{commit0}..HEAD")
         return _get_shortstat_total(diff_str)
 
-    def test(self):
+    def test(self) -> List[Tuple[int, int, git.Commit, git.Commit]]:
         commits = self.get_commit_list()
         print_all_commits(commits)
         print("Iterate...")
@@ -67,11 +72,17 @@ class GitHelper:
                     commit0, commit1, diff_count1, commits[i + 1 :]
                 ):
                     print(f"{rel_diff or '':>4} {_format_commits(commit1, commit2)}")
-                    if rel_diff is not None:
+                    if rel_diff is not None and rel_diff_c is not None:
                         results.append((rel_diff_c, rel_diff, commit1, commit2))
         return results
 
-    def apply_commit2(self, commit0, commit1, diff_count1, commits):
+    def apply_commit2(
+        self,
+        commit0: git.Commit,
+        commit1: git.Commit,
+        diff_count1: int,
+        commits: Iterable[git.Commit],
+    ) -> Generator[Tuple[git.Commit, Optional[int], Optional[int]], None, None]:
         for commit2 in commits:
             self.repo.git.reset("--hard", commit1)
             # print(f"Apply {_format_commit(commit2)}")
@@ -92,7 +103,7 @@ class GitHelper:
                 yield commit2, rel_diff, rel_diff_c
 
     @contextlib.contextmanager
-    def in_tmp_branch(self, commit: git.Commit) -> git.Head:
+    def in_tmp_branch(self, commit: git.Commit) -> Generator[git.Head, None, None]:
         repo = self.repo
         prev_active_branch = repo.active_branch
         tmp_branch = repo.create_head(_TmpBranchName, commit.hexsha, force=True)
@@ -146,13 +157,13 @@ def _get_shortstat_total(shortstat_output: str) -> int:
     return int(match.group(1) or 0) + int(match.group(2) or 0)
 
 
-def print_all_commits(commits):
+def print_all_commits(commits: Iterable[git.Commit]) -> None:
     print("All commits:")
     for commit in commits:
         print("  ", _format_commit(commit), sep="")
 
 
-def print_results(results):
+def print_results(results: List[Tuple[int, int, git.Commit, git.Commit]]) -> None:
     print("Done. Results:")
     results.sort(key=lambda x: x[0])
     for (c_, c, commit1, commit2) in results:
@@ -165,7 +176,7 @@ def print_results(results):
         )
 
 
-def main():
+def main() -> None:
     helper = GitHelper(".")
     results = helper.test()
     print_results(results)
