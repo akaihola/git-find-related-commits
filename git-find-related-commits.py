@@ -64,14 +64,14 @@ class GitHelper:
         for i, commit1 in enumerate(commits):
             (commit0,) = commit1.parents  # will fail if more than one parent
             # print(f"Start at {_format_commit(commit0)}")
-            with self.in_tmp_branch(commit0):
+            with self.in_tmp_branch(commit1):
                 # print(f"Apply {_format_commit(commit1)}")
-                diff_count1 = self.cherry_pick_and_diff(commit1, commit0)
+                diff_str = self.repo.git.diff(f"{commit0}..HEAD")
+                diff_count1 = _count_changed_lines(diff_str)
                 if diff_count1 is None:
                     continue
-                hash1 = self.repo.head.commit
                 for commit2, rel_diff, rel_diff_c in self.apply_commit2(
-                    commit0, hash1, diff_count1, commits[i + 1 :]
+                    commit0, commit1, diff_count1, commits[i + 1 :]
                 ):
                     print(
                         f"{rel_diff or '':>4}"
@@ -92,9 +92,9 @@ class GitHelper:
                 [_format_commit(commit1), _format_commit(commit2)],
             )
 
-    def apply_commit2(self, commit0, hash1, diff_count1, commits):
+    def apply_commit2(self, commit0, commit1, diff_count1, commits):
         for commit2 in commits:
-            self.repo.git.reset("--hard", hash1)
+            self.repo.git.reset("--hard", commit1)
             # print(f"Apply {_format_commit(commit2)}")
             diff_count2 = self.cherry_pick_and_diff(commit2, commit0)
             if diff_count2 is None:
