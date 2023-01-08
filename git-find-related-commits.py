@@ -70,20 +70,9 @@ class GitHelper:
                 if diff_count1 is None:
                     continue
                 hash1 = self.repo.head.commit
-                for commit2 in commits[i + 1 :]:
-                    self.repo.git.reset("--hard", hash1)
-                    # print(f"Apply {_format_commit(commit2)}")
-                    diff_count2 = self.cherry_pick_and_diff(commit2, commit0)
-                    if diff_count2 is None:
-                        rel_diff = None
-                    else:
-                        rel_diff = diff_count2 - diff_count1
-                        commit_diff_str = self.repo.git.show(commit2, format="")
-                        rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
-                        if rel_diff_c >= 0:
-                            # this commit has no influence on the prev commit.
-                            # so skip this whole proposed squash
-                            rel_diff, rel_diff_c = None, None
+                for commit2, rel_diff, rel_diff_c in self.apply_commit2(
+                    commit0, hash1, diff_count1, commits[i + 1 :]
+                ):
                     print(
                         f"{rel_diff or '':>4}"
                         f" {_format_commit(commit1)} --"
@@ -102,6 +91,24 @@ class GitHelper:
                 "commits:",
                 [_format_commit(commit1), _format_commit(commit2)],
             )
+
+    def apply_commit2(self, commit0, hash1, diff_count1, commits):
+        for commit2 in commits:
+            self.repo.git.reset("--hard", hash1)
+            # print(f"Apply {_format_commit(commit2)}")
+            diff_count2 = self.cherry_pick_and_diff(commit2, commit0)
+            if diff_count2 is None:
+                yield commit2, None, None
+                continue
+            rel_diff = diff_count2 - diff_count1
+            commit_diff_str = self.repo.git.show(commit2, format="")
+            rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
+            if rel_diff_c >= 0:
+                # this commit has no influence on the prev commit.
+                # so skip this whole proposed squash
+                yield commit2, None, None
+            else:
+                yield commit2, rel_diff, rel_diff_c
 
     @contextlib.contextmanager
     def in_tmp_branch(self, commit: git.Commit) -> git.Head:
