@@ -46,11 +46,7 @@ class GitHelper:
             )
         )
 
-    def cherry_pick_and_diff(self, commit: git.Commit, commit0: git.Commit) -> int:
-        try:
-            self.repo.git.cherry_pick(commit, "--keep-redundant-commits")
-        except git.GitCommandError:
-            return None
+    def count_changed_lines_since(self, commit0: git.Commit) -> int:
         diff_str = self.repo.git.diff(f"{commit0}..HEAD")
         return _count_changed_lines(diff_str)
 
@@ -66,8 +62,7 @@ class GitHelper:
             # print(f"Start at {_format_commit(commit0)}")
             with self.in_tmp_branch(commit1):
                 # print(f"Apply {_format_commit(commit1)}")
-                diff_str = self.repo.git.diff(f"{commit0}..HEAD")
-                diff_count1 = _count_changed_lines(diff_str)
+                diff_count1 = self.count_changed_lines_since(commit0)
                 if diff_count1 is None:
                     continue
                 for commit2, rel_diff, rel_diff_c in self.apply_commit2(
@@ -96,10 +91,12 @@ class GitHelper:
         for commit2 in commits:
             self.repo.git.reset("--hard", commit1)
             # print(f"Apply {_format_commit(commit2)}")
-            diff_count2 = self.cherry_pick_and_diff(commit2, commit0)
-            if diff_count2 is None:
+            try:
+                self.repo.git.cherry_pick(commit2, "--keep-redundant-commits")
+            except git.GitCommandError:
                 yield commit2, None, None
                 continue
+            diff_count2 = self.count_changed_lines_since(commit0)
             rel_diff = diff_count2 - diff_count1
             commit_diff_str = self.repo.git.show(commit2, format="")
             rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
