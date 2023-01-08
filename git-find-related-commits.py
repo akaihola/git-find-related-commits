@@ -52,9 +52,7 @@ class GitHelper:
 
     def test(self):
         commits = self.get_commit_list()
-        print("All commits:")
-        for commit in commits:
-            print(f"  {_format_commit(commit)}")
+        print_all_commits(commits)
         print("Iterate...")
         results = []
         for i, commit1 in enumerate(commits):
@@ -71,17 +69,7 @@ class GitHelper:
                     print(f"{rel_diff or '':>4} {_format_commits(commit1, commit2)}")
                     if rel_diff is not None:
                         results.append((rel_diff_c, rel_diff, commit1, commit2))
-
-        print("Done. Results:")
-        results.sort(key=lambda x: x[0])
-        for (c_, c, commit1, commit2) in results:
-            print(
-                "***",
-                c_,
-                c,
-                "commits:",
-                _format_commits(commit1, commit2),
-            )
+        return results
 
     def apply_commit2(self, commit0, commit1, diff_count1, commits):
         for commit2 in commits:
@@ -158,9 +146,29 @@ def _get_shortstat_total(shortstat_output: str) -> int:
     return int(match.group(1) or 0) + int(match.group(2) or 0)
 
 
+def print_all_commits(commits):
+    print("All commits:")
+    for commit in commits:
+        print("  ", _format_commit(commit), sep="")
+
+
+def print_results(results):
+    print("Done. Results:")
+    results.sort(key=lambda x: x[0])
+    for (c_, c, commit1, commit2) in results:
+        print(
+            "***",
+            c_,
+            c,
+            "commits:",
+            _format_commits(commit1, commit2),
+        )
+
+
 def main():
     helper = GitHelper(".")
-    helper.test()
+    results = helper.test()
+    print_results(results)
 
 
 if __name__ == "__main__":
