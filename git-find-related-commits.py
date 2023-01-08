@@ -68,11 +68,7 @@ class GitHelper:
                 for commit2, rel_diff, rel_diff_c in self.apply_commit2(
                     commit0, commit1, diff_count1, commits[i + 1 :]
                 ):
-                    print(
-                        f"{rel_diff or '':>4}"
-                        f" {_format_commit(commit1)} --"
-                        f" {_format_commit(commit2)}"
-                    )
+                    print(f"{rel_diff or '':>4} {_format_commits(commit1, commit2)}")
                     if rel_diff is not None:
                         results.append((rel_diff_c, rel_diff, commit1, commit2))
 
@@ -84,7 +80,7 @@ class GitHelper:
                 c_,
                 c,
                 "commits:",
-                [_format_commit(commit1), _format_commit(commit2)],
+                _format_commits(commit1, commit2),
             )
 
     def apply_commit2(self, commit0, commit1, diff_count1, commits):
@@ -127,6 +123,10 @@ class GitHelper:
 
 def _format_commit(commit: git.Commit) -> str:
     return f"{str(commit):8.8} {commit.message.splitlines()[0]}"
+
+
+def _format_commits(commit1: git.Commit, commit2: git.Commit) -> str:
+    return f"{_format_commit(commit1)} -- {_format_commit(commit2)}"
 
 
 SHORTSTAT_RE = re.compile(
