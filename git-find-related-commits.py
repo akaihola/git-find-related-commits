@@ -54,31 +54,6 @@ class GitHelper:
         diff_str = self.repo.git.diff(f"{commit0}..HEAD")
         return _count_changed_lines(diff_str)
 
-    def score_commit_pair_squash(
-        self, commit1: git.Commit, commit2: git.Commit
-    ) -> Tuple[Optional[int], Optional[int], List[str]]:
-        (commit0,) = commit1.parents  # will fail if more than one parent
-        # print(f"Start at {_format_commit(commit0)}")
-        with self.in_tmp_branch(commit0):
-            # print(f"Apply {_format_commit(commit)}")
-            diff_count1 = self.cherry_pick_and_diff(commit1, commit0)
-            if diff_count1 is None:
-                return None, None
-
-            # print(f"Apply {_format_commit(commit)}")
-            diff_count2 = self.cherry_pick_and_diff(commit2, commit0)
-            if diff_count2 is None:
-                return None, None
-
-            rel_diff = diff_count2 - diff_count1
-            commit_diff_str = self.repo.git.show(commit2, format="")
-            rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
-            if rel_diff_c >= 0:
-                # this commit has no influence on the prev commit.
-                # so skip this whole proposed squash
-                return None, None
-        return rel_diff, rel_diff_c
-
     def test(self):
         commits = self.get_commit_list()
         print("All commits:")
@@ -87,15 +62,35 @@ class GitHelper:
         print("Iterate...")
         results = []
         for i, commit1 in enumerate(commits):
-            for commit2 in commits[i + 1 :]:
-                c, c_ = self.score_commit_pair_squash(commit1, commit2)
-                print(
-                    f"{c or '':>4}"
-                    f" {_format_commit(commit1)} --"
-                    f" {_format_commit(commit2)}"
-                )
-                if c is not None:
-                    results.append((c_, c, commit1, commit2))
+            (commit0,) = commit1.parents  # will fail if more than one parent
+            # print(f"Start at {_format_commit(commit0)}")
+            with self.in_tmp_branch(commit0):
+                # print(f"Apply {_format_commit(commit1)}")
+                diff_count1 = self.cherry_pick_and_diff(commit1, commit0)
+                if diff_count1 is None:
+                    continue
+                hash1 = self.repo.head.commit
+                for commit2 in commits[i + 1 :]:
+                    self.repo.git.reset("--hard", hash1)
+                    # print(f"Apply {_format_commit(commit2)}")
+                    diff_count2 = self.cherry_pick_and_diff(commit2, commit0)
+                    if diff_count2 is None:
+                        rel_diff = None
+                    else:
+                        rel_diff = diff_count2 - diff_count1
+                        commit_diff_str = self.repo.git.show(commit2, format="")
+                        rel_diff_c = rel_diff - _count_changed_lines(commit_diff_str)
+                        if rel_diff_c >= 0:
+                            # this commit has no influence on the prev commit.
+                            # so skip this whole proposed squash
+                            rel_diff, rel_diff_c = None, None
+                    print(
+                        f"{rel_diff or '':>4}"
+                        f" {_format_commit(commit1)} --"
+                        f" {_format_commit(commit2)}"
+                    )
+                    if rel_diff is not None:
+                        results.append((rel_diff_c, rel_diff, commit1, commit2))
 
         print("Done. Results:")
         results.sort(key=lambda x: x[0])
