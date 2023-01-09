@@ -22,6 +22,9 @@ from typing import Generator, Iterable
 import git  # pip install GitPython
 from git.objects import Commit
 
+from git_find_related_commits.output import (format_commits, print_all_commits,
+                                             print_results)
+
 TEMPORARY_BRANCH_NAME = "tmp-find-related-commits"
 
 
@@ -73,7 +76,7 @@ def apply_and_diff_commit_pairs(
             for commit2, rel_diff, rel_diff_c in apply_and_diff_each_commit2(
                 repo, commit0, commit1, diff_count1, commits[i + 1 :]
             ):
-                print(f"{rel_diff or '':>4} {_format_commits(commit1, commit2)}")
+                print(f"{rel_diff or '':>4} {format_commits(commit1, commit2)}")
                 if rel_diff is not None and rel_diff_c is not None:
                     results.append((rel_diff_c, rel_diff, commit1, commit2))
     return results
@@ -172,19 +175,6 @@ def apply_and_diff_each_commit2(
             yield commit2, rel_diff, rel_diff_c
 
 
-def _format_commit(commit: Commit) -> str:
-    message = (
-        commit.message.decode("ascii")
-        if isinstance(commit.message, bytes)
-        else commit.message
-    )
-    return f"{str(commit):8.8} {message.splitlines()[0]}"
-
-
-def _format_commits(commit1: Commit, commit2: Commit) -> str:
-    return f"{_format_commit(commit1)} -- {_format_commit(commit2)}"
-
-
 SHORTSTAT_RE = re.compile(
     r"""
     _ \d+ _ file s? _ changed
@@ -217,35 +207,6 @@ def _get_shortstat_total(shortstat_output: str) -> int:
     if not match:
         raise RuntimeError("Can't parse git --shortstat output {shortstat_output!r}")
     return int(match.group(1) or 0) + int(match.group(2) or 0)
-
-
-def print_all_commits(commits: Iterable[Commit]) -> None:
-    """Print out all commits in the given list of commits.
-
-    :param commits: The commits to print
-
-    """
-    print("All commits:")
-    for commit in commits:
-        print("  ", _format_commit(commit), sep="")
-
-
-def print_results(results: list[tuple[int, int, Commit, Commit]]) -> None:
-    """Print the results from comparing all pairs of commits.
-
-    :param results: The commit pairs and their degrees of relatedness
-
-    """
-    print("Done. Results:")
-    results.sort(key=lambda x: x[0])
-    for (c_, c, commit1, commit2) in results:
-        print(
-            "***",
-            c_,
-            c,
-            "commits:",
-            _format_commits(commit1, commit2),
-        )
 
 
 def main() -> None:
