@@ -81,7 +81,7 @@ def count_changed_lines_since(repo: git.Repo, commit0: Commit) -> int:
 
     """
     diff_str = repo.git.diff("--shortstat", f"{commit0}..HEAD")
-    return _get_shortstat_total(diff_str)
+    return get_shortstat_total(diff_str)
 
 
 SHORTSTAT_RE = re.compile(
@@ -96,7 +96,7 @@ SHORTSTAT_RE = re.compile(
 )
 
 
-def _get_shortstat_total(shortstat_output: str) -> int:
+def get_shortstat_total(shortstat_output: str) -> int:
     """Parse total insertions and deletions in ``git --shortstat``.
 
     >>> _get_shortstat_total(" 2 files changed, 1 insertion(+), 5 deletions(-)")

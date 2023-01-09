@@ -21,7 +21,7 @@ import git  # pip install GitPython
 from git.objects import Commit
 
 from git_find_related_commits.git_helpers import (
-    _get_shortstat_total,
+    get_shortstat_total,
     count_changed_lines_since,
     get_commit_list,
     get_main_branch,
@@ -100,7 +100,7 @@ def apply_and_diff_each_commit2(
         diff_count2 = count_changed_lines_since(repo, commit0)
         rel_diff = diff_count2 - diff_count1
         commit_diff_str = repo.git.show(commit2, format="", shortstat=True)
-        rel_diff_c = rel_diff - _get_shortstat_total(commit_diff_str)
+        rel_diff_c = rel_diff - get_shortstat_total(commit_diff_str)
         if rel_diff_c >= 0:
             # this commit has no influence on the prev commit.
             # so skip this whole proposed squash
