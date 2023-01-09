@@ -18,7 +18,7 @@ from __future__ import annotations
 import contextlib
 import re
 import sys
-from typing import Generator, Iterable, List, Optional, Tuple
+from typing import Generator, Iterable
 
 import git  # pip install GitPython
 
@@ -42,7 +42,7 @@ class GitHelper:
         self.local_branch = self.repo.active_branch
         assert self.local_branch.name != _TmpBranchName
 
-    def get_commit_list(self) -> List[git.Commit]:
+    def get_commit_list(self) -> list[git.Commit]:
         """
         Returns:
         All the commits starting from the main branch.
@@ -62,7 +62,7 @@ class GitHelper:
 
     def apply_and_diff_commit_pairs(
         self,
-    ) -> List[Tuple[int, int, git.Commit, git.Commit]]:
+    ) -> list[tuple[int, int, git.Commit, git.Commit]]:
         commits = self.get_commit_list()
         print_all_commits(commits)
         print("Iterate...")
@@ -89,7 +89,7 @@ class GitHelper:
         commit1: git.Commit,
         diff_count1: int,
         commits: Iterable[git.Commit],
-    ) -> Generator[Tuple[git.Commit, Optional[int], Optional[int]], None, None]:
+    ) -> Generator[tuple[git.Commit, int | None, int | None], None, None]:
         for commit2 in commits:
             self.repo.git.reset("--hard", commit1)
             # print(f"Apply {_format_commit(commit2)}")
@@ -170,7 +170,7 @@ def print_all_commits(commits: Iterable[git.Commit]) -> None:
         print("  ", _format_commit(commit), sep="")
 
 
-def print_results(results: List[Tuple[int, int, git.Commit, git.Commit]]) -> None:
+def print_results(results: list[tuple[int, int, git.Commit, git.Commit]]) -> None:
     print("Done. Results:")
     results.sort(key=lambda x: x[0])
     for (c_, c, commit1, commit2) in results:
