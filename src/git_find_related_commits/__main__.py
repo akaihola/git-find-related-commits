@@ -21,7 +21,7 @@ from typing import Generator, Iterable
 
 import git  # pip install GitPython
 
-_TmpBranchName = "tmp-find-related-commits"
+TEMPORARY_BRANCH_NAME = "tmp-find-related-commits"
 
 
 class GitHelper:
@@ -39,7 +39,7 @@ class GitHelper:
         self.main_branch = f"origin/{head}"
 
         self.local_branch = self.repo.active_branch
-        assert self.local_branch.name != _TmpBranchName
+        assert self.local_branch.name != TEMPORARY_BRANCH_NAME
 
     def get_commit_list(self) -> list[git.Commit]:
         """
@@ -112,7 +112,7 @@ class GitHelper:
     def in_tmp_branch(self, commit: git.Commit) -> Generator[git.Head, None, None]:
         repo = self.repo
         prev_active_branch = repo.active_branch
-        tmp_branch = repo.create_head(_TmpBranchName, commit.hexsha, force=True)
+        tmp_branch = repo.create_head(TEMPORARY_BRANCH_NAME, commit.hexsha, force=True)
         repo.git.checkout(tmp_branch)
         try:
             yield tmp_branch
@@ -123,7 +123,7 @@ class GitHelper:
         finally:
             repo.git.reset("--hard")
             repo.git.checkout(prev_active_branch)
-            repo.delete_head(_TmpBranchName, force=True)
+            repo.delete_head(TEMPORARY_BRANCH_NAME, force=True)
 
 
 def _format_commit(commit: git.Commit) -> str:
