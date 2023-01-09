@@ -22,5 +22,12 @@ dependencies = [
 [project.urls]
 Home = "https://github.com/akaihola/git-find-related-commits"
 
+[project.optional-dependencies]
+tests = [
+    "flake8",
+    "flake8-docstrings",
+    "mypy",
+]
+
 [project.scripts]
 git-find-related-commits = "git_find_related_commits.__main__:main"
