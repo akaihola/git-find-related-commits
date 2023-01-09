@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Find closely related commits in a Git branch
+"""Find closely related commits in a Git branch.
 
 Copyright (c) 2023 Albert Zeyer, Antti Kaihola
 Licensed under the MIT license. For details, see the file ``LICENSE`` in the root of the
@@ -26,7 +26,14 @@ TEMPORARY_BRANCH_NAME = "tmp-find-related-commits"
 
 
 def get_main_branch(repo: git.Repo) -> str:
-    """Get the remote main branch name"""
+    """Get the remote main branch name.
+
+    Assumes that the remote is called ``"origin"``.
+
+    :param repo: The Git repository to use
+    :return: The name of the remote main branch, e.g. ``"origin/main"``
+
+    """
     symref = repo.git.ls_remote("--symref", "origin", "HEAD")
     match = re.match(r"ref: refs/heads/(.+)\tHEAD\b", symref)
     if not match:
@@ -38,7 +45,14 @@ def get_main_branch(repo: git.Repo) -> str:
 def apply_and_diff_commit_pairs(
     repo: git.Repo, main_branch: str, local_branch: git.Head
 ) -> list[tuple[int, int, Commit, Commit]]:
+    """Compare changed lines of each commit pair.
 
+    :param repo: The Git repository to use
+    :param main_branch: The remote main branch, e.g. ``"origin/main"``
+    :param local_branch: The local branch whose commits to look at
+    :return: List of related commit pairs with scores
+
+    """
     assert local_branch.name != TEMPORARY_BRANCH_NAME
 
     commits = get_commit_list(repo, main_branch, local_branch)
@@ -65,9 +79,13 @@ def apply_and_diff_commit_pairs(
 def get_commit_list(
     repo: git.Repo, main_branch: str, local_branch: git.Head
 ) -> list[Commit]:
-    """
-    Returns:
-    All the commits starting from the main branch.
+    """Get the list of commits between the main branch and the given feature branch.
+
+    :param repo: The Git repository to use
+    :param main_branch: The remote main branch, e.g. ``"origin/main"``
+    :param local_branch: The local branch whose commits to look at
+    :return: All the commits starting from the main branch
+
     """
     # On a branch, get the base commit which is in the main branch
     # (e.g. origin/master).
@@ -77,6 +95,14 @@ def get_commit_list(
 
 @contextlib.contextmanager
 def in_tmp_branch(repo: git.Repo, commit: Commit) -> Generator[git.Head, None, None]:
+    """Create a temporary branch at the given commit, run code, and clean up.
+
+    :param repo: The Git repository to use
+    :param commit: The commit to create the temporary branch at
+    :raises git.GitCommandError: if Git fails
+    :yield: The temporary branch object
+
+    """
     prev_active_branch = repo.active_branch
     tmp_branch = repo.create_head(TEMPORARY_BRANCH_NAME, commit.hexsha, force=True)
     repo.git.checkout(tmp_branch)
@@ -93,6 +119,13 @@ def in_tmp_branch(repo: git.Repo, commit: Commit) -> Generator[git.Head, None, N
 
 
 def count_changed_lines_since(repo: git.Repo, commit0: Commit) -> int:
+    """Find out the number of inserted/deleted lines since the given commit.
+
+    :param repo: The Git repository to use
+    :param commit: The old commit to compare to
+    :return: The total number of inserted and deleted lines
+
+    """
     diff_str = repo.git.diff("--shortstat", f"{commit0}..HEAD")
     return _get_shortstat_total(diff_str)
 
@@ -104,6 +137,18 @@ def apply_and_diff_each_commit2(
     diff_count1: int,
     commits: Iterable[Commit],
 ) -> Generator[tuple[Commit, int | None, int | None], None, None]:
+    """Compare each newer commit to a given older commit, yield degree of relatedness.
+
+    The repository ``HEAD`` is assumed to point to the older commit.
+
+    :param repo: The Git repository to use
+    :param commit0: The parent of the old commit
+    :param commit1: The old commit to compare to
+    :param diff_count1: Number of changed lines between ``commit0`` and ``commit1``
+    :param commits: The new commits to compare
+    :yield: Tuples with the new commit and the degree of relatednsess
+
+    """
     for commit2 in commits:
         repo.git.reset("--hard", commit1)
         # print(f"Apply {_format_commit(commit2)}")
@@ -150,7 +195,7 @@ SHORTSTAT_RE = re.compile(
 
 
 def _get_shortstat_total(shortstat_output: str) -> int:
-    """Parse total insertions and deletions in ``git --shortstat``
+    """Parse total insertions and deletions in ``git --shortstat``.
 
     >>> _get_shortstat_total(" 2 files changed, 1 insertion(+), 5 deletions(-)")
     6
@@ -167,12 +212,22 @@ def _get_shortstat_total(shortstat_output: str) -> int:
 
 
 def print_all_commits(commits: Iterable[Commit]) -> None:
+    """Print out all commits in the given list of commits.
+
+    :param commits: The commits to print
+
+    """
     print("All commits:")
     for commit in commits:
         print("  ", _format_commit(commit), sep="")
 
 
 def print_results(results: list[tuple[int, int, Commit, Commit]]) -> None:
+    """Print the results from comparing all pairs of commits.
+
+    :param results: The commit pairs and their degrees of relatedness
+
+    """
     print("Done. Results:")
     results.sort(key=lambda x: x[0])
     for (c_, c, commit1, commit2) in results:
@@ -186,6 +241,7 @@ def print_results(results: list[tuple[int, int, Commit, Commit]]) -> None:
 
 
 def main() -> None:
+    """Compare pairs of commits in the repository at the current working directory."""
     repo = git.Repo(".")
     main_branch = get_main_branch(repo)
     results = apply_and_diff_commit_pairs(repo, main_branch, repo.active_branch)
