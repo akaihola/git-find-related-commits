@@ -52,6 +52,7 @@ def in_tmp_branch(
     """Create a temporary branch at the given commit, run code, and clean up.
 
     :param repo: The Git repository to use
+    :param name: The name of the temporary branch
     :param commit: The commit to create the temporary branch at
     :raises git.GitCommandError: if Git fails
     :yield: The temporary branch object
