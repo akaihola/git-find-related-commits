@@ -14,6 +14,9 @@ maintainers = [
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
+dependencies = [
+    "GitPython",
+]
 
 [project.urls]
 Home = "https://github.com/akaihola/git-find-related-commits"
