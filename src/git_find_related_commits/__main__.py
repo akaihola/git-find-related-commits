@@ -2,10 +2,15 @@
 
 """Find closely related commits in a Git branch
 
-Adopted from https://github.com/albertz/helpers/blob/master/git-find-related-commits.py
+Copyright (c) 2023 Albert Zeyer, Antti Kaihola
+Licensed under the MIT license. For details, see the file ``LICENSE`` in the root of the
+repository at https://github.com/akaihola/git-find-related-commits
 
-https://stackoverflow.com/questions/66731069/how-to-find-pairs-groups-of-most-related-commits
-https://www.reddit.com/r/learnprogramming/comments/pftenx/how_to_cleanup_a_branch_pr_with_huge_number_of/
+Adapted from https://github.com/albertz/helpers/blob/master/git-find-related-commits.py
+
+https://stackoverflow.com/questions/66731069/find-pairs-of-most-related-commits
+https://www.reddit.com/r/learnprogramming/comments/pftenx/cleanup_pr_lots_of_commits/
+
 """
 
 from __future__ import annotations
