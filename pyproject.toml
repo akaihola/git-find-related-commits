@@ -24,6 +24,7 @@ Home = "https://github.com/akaihola/git-find-related-commits"
 
 [project.optional-dependencies]
 tests = [
+    "darglint",
     "flake8",
     "flake8-docstrings",
     "mypy",

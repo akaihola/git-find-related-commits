@@ -32,12 +32,15 @@ def get_main_branch(repo: git.Repo) -> str:
 
     :param repo: The Git repository to use
     :return: The name of the remote main branch, e.g. ``"origin/main"``
+    :raises RuntimeError: if ``git ls-remote --symref origin HEAD`` fails
 
     """
-    symref = repo.git.ls_remote("--symref", "origin", "HEAD")
-    match = re.match(r"ref: refs/heads/(.+)\tHEAD\b", symref)
+    symref_output = repo.git.ls_remote("--symref", "origin", "HEAD")
+    match = re.match(r"ref: refs/heads/(.+)\tHEAD\b", symref_output)
     if not match:
-        raise RuntimeError("Can't parse `git --symref origin HEAD` output {symref!r}")
+        raise RuntimeError(
+            "Can't parse `git ls-remote --symref origin HEAD` output {symref_output!r}"
+        )
     head = match.group(1)
     return f"origin/{head}"
 
@@ -108,10 +111,10 @@ def in_tmp_branch(repo: git.Repo, commit: Commit) -> Generator[git.Head, None, N
     repo.git.checkout(tmp_branch)
     try:
         yield tmp_branch
-    except git.GitCommandError as exc:
+    except git.GitCommandError:
         print("Git exception occurred. Current git status:")
         print(repo.git.status())
-        raise exc
+        raise
     finally:
         repo.git.reset("--hard")
         repo.git.checkout(prev_active_branch)
@@ -122,7 +125,7 @@ def count_changed_lines_since(repo: git.Repo, commit0: Commit) -> int:
     """Find out the number of inserted/deleted lines since the given commit.
 
     :param repo: The Git repository to use
-    :param commit: The old commit to compare to
+    :param commit0: The old commit to compare to
     :return: The total number of inserted and deleted lines
 
     """
@@ -203,6 +206,11 @@ def _get_shortstat_total(shortstat_output: str) -> int:
     3
     >>> _get_shortstat_total(" 2 files changed, 1 deletion(-)")
     1
+
+    :param shortstat_output: Output from ``git diff --shortstat <commit>..<commit>`` or
+                             ``git show --shortstat --format= <object>``
+    :return: The sum of numbers of insertions and deletions
+    :raises RuntimeError: if Git output doesn't match what's expected
 
     """
     match = SHORTSTAT_RE.match(shortstat_output)
